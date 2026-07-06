@@ -9,7 +9,7 @@ import geopandas as gpd
 import joblib
 import folium
 import json
-import base64 # Ditambahkan untuk mengonversi peta ke iframe murni
+import base64
 
 st.set_page_config(page_title="Peta Kerawanan Banjir - SVM", page_icon="🌊", layout="wide")
 
@@ -20,7 +20,6 @@ def render_map_responsive(m, height=550):
     """Merender peta Folium ke HTML murni tanpa bergantung pada st.components"""
     map_html = m.get_root().render()
     b64 = base64.b64encode(map_html.encode('utf-8')).decode('utf-8')
-    # Menyuntikkan iframe murni dengan lebar 100%
     iframe_html = f'<iframe src="data:text/html;base64,{b64}" width="100%" height="{height}" style="border:none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></iframe>'
     st.markdown(iframe_html, unsafe_allow_html=True)
 
@@ -85,7 +84,8 @@ with tab1:
     col_map_all, col_info_all = st.columns([2.2, 1])
 
     with col_map_all:
-        m = folium.Map(location=[lat_center, lon_center], zoom_start=10)
+        # MENGGUNAKAN TILES CARTODB POSITRON AGAR TIDAK DIBLOKIR OSM
+        m = folium.Map(location=[lat_center, lon_center], zoom_start=10, tiles="CartoDB positron")
         geojson_data = json.loads(gdf.to_json())
 
         for feature in geojson_data["features"]:
@@ -105,7 +105,6 @@ with tab1:
             ),
         ).add_to(m)
 
-        # Memanggil fungsi baru kita
         render_map_responsive(m, height=550)
 
     with col_info_all:
@@ -185,7 +184,6 @@ with tab2:
 
         col_map, col_results = st.columns([1.5, 1])
 
-        # --- BAGIAN KIRI: PETA ---
         with col_map:
             st.markdown(f"**Titik Fokus:** Simulasi pada **Kecamatan {kec_pilih}**")
             
@@ -199,7 +197,8 @@ with tab2:
             else:
                 titik_y, titik_x = lat_center, lon_center
 
-            m2 = folium.Map(location=[titik_y, titik_x], zoom_start=13)
+            # MENGGUNAKAN TILES CARTODB POSITRON AGAR TIDAK DIBLOKIR OSM
+            m2 = folium.Map(location=[titik_y, titik_x], zoom_start=13, tiles="CartoDB positron")
                 
             geojson_data_2 = json.loads(gdf.to_json())
 
@@ -217,7 +216,7 @@ with tab2:
             folium.CircleMarker(
                 location=[titik_y, titik_x],
                 radius=15,
-                color="white",
+                color="black",
                 weight=2,
                 fill=True,
                 fill_color=warna_kelas(hasil),
@@ -226,10 +225,8 @@ with tab2:
                 tooltip="Klik untuk melihat detail"
             ).add_to(m2)
 
-            # Memanggil fungsi baru kita
             render_map_responsive(m2, height=450)
 
-        # --- BAGIAN KANAN: KARTU HASIL & PROBABILITAS ---
         with col_results:
             warna_hasil = warna_kelas(hasil)
             st.markdown(f"""
