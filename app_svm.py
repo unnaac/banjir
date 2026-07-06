@@ -4,14 +4,25 @@ Dua mode: (1) peta choropleth seluruh kecamatan, (2) input manual + titik predik
 """
 
 import streamlit as st
-import streamlit.components.v1 as components 
 import pandas as pd
 import geopandas as gpd
 import joblib
 import folium
 import json
+import base64 # Ditambahkan untuk mengonversi peta ke iframe murni
 
 st.set_page_config(page_title="Peta Kerawanan Banjir - SVM", page_icon="🌊", layout="wide")
+
+# =========================================================
+# FUNGSI RENDER PETA (ANTI-ERROR & 100% RESPONSIF)
+# =========================================================
+def render_map_responsive(m, height=550):
+    """Merender peta Folium ke HTML murni tanpa bergantung pada st.components"""
+    map_html = m.get_root().render()
+    b64 = base64.b64encode(map_html.encode('utf-8')).decode('utf-8')
+    # Menyuntikkan iframe murni dengan lebar 100%
+    iframe_html = f'<iframe src="data:text/html;base64,{b64}" width="100%" height="{height}" style="border:none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></iframe>'
+    st.markdown(iframe_html, unsafe_allow_html=True)
 
 # =========================================================
 # MUAT MODEL & DATA GEOSPASIAL
@@ -94,7 +105,8 @@ with tab1:
             ),
         ).add_to(m)
 
-        components.html(m._repr_html_(), height=550)
+        # Memanggil fungsi baru kita
+        render_map_responsive(m, height=550)
 
     with col_info_all:
         st.markdown("#### Legenda & Ringkasan")
@@ -187,8 +199,6 @@ with tab2:
             else:
                 titik_y, titik_x = lat_center, lon_center
 
-            # Memulai peta dengan titik tengah persis di koordinat marker (titik_y, titik_x)
-            # Tanpa menggunakan fit_bounds agar posisi absolut di tengah layar
             m2 = folium.Map(location=[titik_y, titik_x], zoom_start=13)
                 
             geojson_data_2 = json.loads(gdf.to_json())
@@ -216,7 +226,8 @@ with tab2:
                 tooltip="Klik untuk melihat detail"
             ).add_to(m2)
 
-            components.html(m2._repr_html_(), height=450)
+            # Memanggil fungsi baru kita
+            render_map_responsive(m2, height=450)
 
         # --- BAGIAN KANAN: KARTU HASIL & PROBABILITAS ---
         with col_results:
